@@ -1,15 +1,39 @@
-"use strict";
+import json
+import boto3
+import uuid
 
-module.exports.hello = async (event) => {
-  return {
-    statusCode: 200,
-    body: JSON.stringify(
-      {
-        message: "Go Serverless v3.0! Your function executed successfully!",
-        input: event,
-      },
-      null,
-      2
-    ),
-  };
-};
+dynamodb = boto3.resource("dynamodb")
+table = dynamodb.Table("UsersTable")
+
+def main(event, context):
+
+    # POST → create user
+    if event["requestContext"]["http"]["method"] == "POST":
+        body = json.loads(event["body"])
+
+        user_id = str(uuid.uuid4())
+
+        item = {
+            "userId": user_id,
+            "name": body["name"],
+            "email": body["email"]
+        }
+
+        table.put_item(Item=item)
+
+        return {
+            "statusCode": 201,
+            "body": json.dumps({
+                "message": "User created",
+                "data": item
+            })
+        }
+
+    # GET → fetch all users
+    if event["requestContext"]["http"]["method"] == "GET":
+        response = table.scan()
+
+        return {
+            "statusCode": 200,
+            "body": json.dumps(response["Items"])
+        }
