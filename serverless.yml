@@ -1,17 +1,44 @@
-org: himanshugohil18
-app: aws-node-http-api-project
-service: aws-node-http-api-project
-frameworkVersion: '3'
+service: aws-python-http-api-project
 
 provider:
   name: aws
-  runtime: nodejs14.x
+  runtime: python3.10
   region: us-east-1
 
+  iam:
+    role:
+      statements:
+        - Effect: Allow
+          Action:
+            - dynamodb:PutItem
+            - dynamodb:GetItem
+            - dynamodb:Scan
+            - dynamodb:DeleteItem
+            - dynamodb:UpdateItem
+          Resource:
+            - arn:aws:dynamodb:us-east-1:*:table/UsersTable
+
 functions:
-  hello:
-    handler: handler.hello
+  api:
+    handler: handler.main
     events:
       - httpApi:
-          path: /
-          method: get
+          path: /users
+          method: POST
+      - httpApi:
+          path: /users
+          method: GET
+
+resources:
+  Resources:
+    UsersTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: UsersTable
+        BillingMode: PAY_PER_REQUEST
+        AttributeDefinitions:
+          - AttributeName: userId
+            AttributeType: S
+        KeySchema:
+          - AttributeName: userId
+            KeyType: HASH
