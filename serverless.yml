@@ -1,8 +1,8 @@
-service: aws-python-http-api-project
+service: aws-node-http-api-project
 
 provider:
   name: aws
-  runtime: python3.10
+  runtime: nodejs18.x
   region: us-east-1
 
   iam:
