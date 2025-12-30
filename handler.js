@@ -1,39 +1,50 @@
-import json
-import boto3
-import uuid
+const AWS = require("aws-sdk");
+const { v4: uuidv4 } = require("uuid");
 
-dynamodb = boto3.resource("dynamodb")
-table = dynamodb.Table("UsersTable")
+const dynamodb = new AWS.DynamoDB.DocumentClient();
+const TABLE_NAME = "UsersTable";
 
-def main(event, context):
+module.exports.main = async (event) => {
 
-    # POST → create user
-    if event["requestContext"]["http"]["method"] == "POST":
-        body = json.loads(event["body"])
+  // POST → create user
+  if (event.requestContext.http.method === "POST") {
+    const body = JSON.parse(event.body);
 
-        user_id = str(uuid.uuid4())
+    const item = {
+      userId: uuidv4(),
+      name: body.name,
+      email: body.email,
+    };
 
-        item = {
-            "userId": user_id,
-            "name": body["name"],
-            "email": body["email"]
-        }
+    await dynamodb.put({
+      TableName: TABLE_NAME,
+      Item: item,
+    }).promise();
 
-        table.put_item(Item=item)
+    return {
+      statusCode: 201,
+      body: JSON.stringify({
+        message: "User created",
+        data: item,
+      }),
+    };
+  }
 
-        return {
-            "statusCode": 201,
-            "body": json.dumps({
-                "message": "User created",
-                "data": item
-            })
-        }
+  // GET → fetch all users
+  if (event.requestContext.http.method === "GET") {
+    const result = await dynamodb.scan({
+      TableName: TABLE_NAME,
+    }).promise();
 
-    # GET → fetch all users
-    if event["requestContext"]["http"]["method"] == "GET":
-        response = table.scan()
+    return {
+      statusCode: 200,
+      body: JSON.stringify(result.Items),
+    };
+  }
 
-        return {
-            "statusCode": 200,
-            "body": json.dumps(response["Items"])
-        }
+  // fallback
+  return {
+    statusCode: 400,
+    body: JSON.stringify({ message: "Unsupported method" }),
+  };
+};
